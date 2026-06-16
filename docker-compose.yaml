@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend Service
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: fastapi:latest
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - app-network
+
+  # Streamlit Frontend Service
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    image: streamlit:latest
+    container_name: streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_PORT=8501
+      - API_URL=http://fastapi:8000
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
